@@ -21,7 +21,7 @@ class FacadesDataset(Dataset):
         img_name = self.image_filenames[idx]
         img_bgr = cv2.imread(img_name)
         
-        # 必须把 BGR 转换成 RGB
+        # Convert BGR to RGB
         img_color_semantic = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
         
         # Convert the image to a PyTorch tensor

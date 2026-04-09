@@ -3,19 +3,19 @@ URL=http://efrosgans.eecs.berkeley.edu/pix2pix/datasets/$FILE.tar.gz
 TAR_FILE=./datasets/$FILE.tar.gz
 TARGET_DIR=./datasets/$FILE/
 
-# 1. 创建目标文件夹
+# Create the target directory
 mkdir -p $TARGET_DIR
 echo "Downloading $URL dataset to $TARGET_DIR ..."
 
-# 2. 下载压缩包
+# Download the tar archive
 curl -L $URL -o $TAR_FILE
 
-# 3. 解压到 ./datasets/ 目录下
+# Extract to the ./datasets/ directory
 tar -zxvf $TAR_FILE -C ./datasets/
 
-# 4. 删除压缩包
+# Remove the tar archive
 rm $TAR_FILE
 
-# 5. 【核心修改】：使用 >> 将新路径追加到原有文件末尾
+# Use >> to append new paths to the end of the existing files
 find "${TARGET_DIR}train" -type f -name "*.jpg" | sort -V >> ./train_list.txt
 find "${TARGET_DIR}val" -type f -name "*.jpg" | sort -V >> ./val_list.txt

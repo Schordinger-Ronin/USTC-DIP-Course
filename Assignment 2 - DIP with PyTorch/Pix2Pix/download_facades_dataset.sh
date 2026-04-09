@@ -5,7 +5,7 @@ TARGET_DIR=./datasets/$FILE/
 mkdir -p $TARGET_DIR
 echo "Downloading $URL dataset..." to $TARGET_DIR
 
-# 这里把报错的 wget 换成了 Mac 自带的 curl
+# Replaced wget with Mac's built-in curl
 curl -L $URL -o $TAR_FILE
 
 mkdir -p $TARGET_DIR

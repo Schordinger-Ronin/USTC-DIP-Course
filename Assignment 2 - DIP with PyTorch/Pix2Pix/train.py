@@ -35,7 +35,7 @@ def save_images(inputs, targets, outputs, folder_name, epoch, num_images=5):
         comparison = np.hstack((input_img_np, target_img_np, output_img_np))
         cv2.imwrite(f'{folder_name}/epoch_{epoch}/result_{i + 1}.png', comparison)
 
-# 注意：确保在顶部导入了新的类
+# Ensure new classes are imported at the top
 # from FCN_network import FullyConvNetwork, PatchGANDiscriminator
 
 def train_one_epoch(generator, discriminator, dataloader, optimizer_G, optimizer_D, criterion_GAN, criterion_L1, device, epoch, num_epochs):
@@ -50,14 +50,14 @@ def train_one_epoch(generator, discriminator, dataloader, optimizer_G, optimizer
         image_rgb = image_rgb.to(device)
         image_semantic = image_semantic.to(device)
 
-        # 1. 训练生成器 (Generator) - 每个 Step 都训练
+        # Train Generator - Train at every step
         # ------------------------------------------
         optimizer_G.zero_grad()
         
         fake_images = generator(image_rgb)
         
-        # 构建 PatchGAN 的真标签 (用于骗过判别器)
-        # 这里可以使用 Label Smoothing，将 1.0 改为 0.9
+        # Build real labels for PatchGAN
+        # Label Smoothing can be used here, changing 1.0 to 0.9
         valid = torch.full((image_rgb.size(0), 1, 30, 30), 0.9, device=device)
         
         pred_fake = discriminator(image_rgb, fake_images)
@@ -68,17 +68,17 @@ def train_one_epoch(generator, discriminator, dataloader, optimizer_G, optimizer
         loss_G.backward()
         optimizer_G.step()
 
-        # 2. 策略性训练判别器 (Discriminator) - 每 4 个 Step 才练一次
+        # Strategically train Discriminator - Train only once every 4 steps
         # -------------------------------------------------------
-        # 【修改位置在此】：加入 if i % 4 == 0 判断
+        # Add if i % 4 == 0 condition
         if i % 4 == 0:
             optimizer_D.zero_grad()
             
-            # 判别真图
+            # Discriminate real images
             pred_real = discriminator(image_rgb, image_semantic)
             loss_real = criterion_GAN(pred_real, valid)
             
-            # 判别假图 (Label Smoothing: 0.0 改为 0.1)
+            # Discriminate fake images (Label Smoothing: change 0.0 to 0.1)
             fake_label = torch.full((image_rgb.size(0), 1, 30, 30), 0.1, device=device)
             pred_fake_d = discriminator(image_rgb, fake_images.detach())
             loss_fake = criterion_GAN(pred_fake_d, fake_label)
@@ -86,15 +86,15 @@ def train_one_epoch(generator, discriminator, dataloader, optimizer_G, optimizer
             loss_D = (loss_real + loss_fake) * 0.5
             loss_D.backward()
             optimizer_D.step()
-            running_loss_D = loss_D.item() # 更新记录用的 Loss
+            running_loss_D = loss_D.item() # Update Loss for logging
 
-        # 3. 记录数据
+        # Record data
         running_loss_G += loss_G.item()
         
         if epoch % 5 == 0 and i == 0:
             save_images(image_rgb, image_semantic, fake_images, 'train_results', epoch)
 
-        # 每 50 个 Step 打印一次
+        # Print every 50 steps
         if (i + 1) % 50 == 0 or (i + 1) == len(dataloader):
             print(f'Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{len(dataloader)}], Loss_D: {running_loss_D:.4f}, Loss_G: {loss_G.item():.4f}')
 
@@ -137,23 +137,23 @@ def main():
     train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True, num_workers=2)
     val_loader = DataLoader(val_dataset, batch_size=4, shuffle=False, num_workers=2)
 
-    # 实例化双网络
+    # Instantiate dual networks
     generator = FullyConvNetwork().to(device)
     discriminator = PatchGANDiscriminator().to(device)
     
-    # 损失函数: L1 负责大体结构，BCEWithLogitsLoss 负责对抗真假判定
+    # Loss functions: L1 handles overall structure, BCEWithLogitsLoss handles adversarial real/fake classification
     criterion_L1 = nn.L1Loss()
     criterion_GAN = nn.BCEWithLogitsLoss()
     
-    # 两个独立的优化器
+    # Two independent optimizers
     optimizer_G = optim.Adam(generator.parameters(), lr=0.0002, betas=(0.5, 0.999), weight_decay=1e-4)
     optimizer_D = optim.Adam(discriminator.parameters(), lr=0.00005, betas=(0.5, 0.999))
 
-    # 【修改点 2】：学习率调度器，由于总轮次减少，将 step_size 从 100 提前到 50
+    # Learning rate schedulers: since total epochs are reduced, advance step_size from 100 to 50
     scheduler_G = StepLR(optimizer_G, step_size=50, gamma=0.5)
     scheduler_D = StepLR(optimizer_D, step_size=50, gamma=0.5)
 
-    # 【修改点 3】：总训练轮次从 300 大幅缩减到 100
+    # Total training epochs significantly reduced from 300 to 100
     num_epochs = 100
     for epoch in range(num_epochs):
         train_one_epoch(generator, discriminator, train_loader, optimizer_G, optimizer_D, criterion_GAN, criterion_L1, device, epoch, num_epochs)
@@ -162,7 +162,7 @@ def main():
         scheduler_G.step()
         scheduler_D.step()
 
-        # 【修改点 4】：模型保存频率从每 50 轮保存一次，改为每 10 轮保存一次，防止意外死机
+        # Model saving frequency changed from every 50 epochs to every 10 epochs
         if (epoch + 1) % 10 == 0:
             os.makedirs('checkpoints', exist_ok=True)
             torch.save(generator.state_dict(), f'checkpoints/generator_epoch_{epoch + 1}.pth')

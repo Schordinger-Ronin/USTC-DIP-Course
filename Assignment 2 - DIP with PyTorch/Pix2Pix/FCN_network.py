@@ -4,51 +4,47 @@ import torch.nn as nn
 class FullyConvNetwork(nn.Module):
     def __init__(self):
         super().__init__()
-        
-        # ==========================================
-        # Encoder (编码器)
-        # ==========================================
+    
+        # Encoder
         # Input: (3, 256, 256)
         self.enc1 = self.conv_block(3, 64)       # Output: (64, 128, 128)
         self.enc2 = self.conv_block(64, 128)     # Output: (128, 64, 64)
         self.enc3 = self.conv_block(128, 256)    # Output: (256, 32, 32)
         self.enc4 = self.conv_block(256, 512)    # Output: (512, 16, 16)
         
-        # Bottleneck (瓶颈层)
+        # Bottleneck
         self.bottleneck = self.conv_block(512, 512) # Output: (512, 8, 8)
 
-        # ==========================================
-        # Decoder (解码器) - 带有 Skip Connections 和 Dropout
-        # ==========================================
-        # 核心优化：在最深处的前三个解码层加入 Dropout，防止过拟合并提供随机性
+        # Decoder - with Skip Connections and Dropout
+        # Add Dropout to the first three innermost decoding layers to prevent overfitting and provide randomness
         self.dec4 = self.deconv_block(512, 512, use_dropout=True)       # Output: (512, 16, 16)
         self.dec3 = self.deconv_block(512 + 512, 256, use_dropout=True) # Output: (256, 32, 32)
         self.dec2 = self.deconv_block(256 + 256, 128, use_dropout=True) # Output: (128, 64, 64)
         
-        # 越靠近输出层，特征越具象，不再使用 Dropout
+        # No longer use Dropout
         self.dec1 = self.deconv_block(128 + 128, 64, use_dropout=False) # Output: (64, 128, 128)
         
-        # Final Layer (输出层)
+        # Final Layer
         self.final = nn.Sequential(
             nn.ConvTranspose2d(64 + 64, 3, kernel_size=4, stride=2, padding=1),
-            nn.Tanh() # 保持输出在 [-1, 1] 之间
+            nn.Tanh() # Keep the output between [-1, 1]
         ) # Output: (3, 256, 256)
 
-        # 应用权重初始化
+        # Apply weight initialization
         self.apply(self.init_weights)
 
-    # 核心优化：Pix2Pix 官方的权重初始化方法
+    # Weight initialization method for Pix2Pix
     def init_weights(self, m):
         if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
-            # 卷积层权重初始化为均值 0，标准差 0.02 的正态分布
+            # Initialize convolutional layer weights with a normal distribution of mean 0 and standard deviation 0.02
             nn.init.normal_(m.weight, 0.0, 0.02)
         elif isinstance(m, nn.BatchNorm2d):
-            # BatchNorm 层权重初始化为均值 1.0，标准差 0.02，偏置为 0
+            # Initialize BatchNorm layer weights with mean 1.0, standard deviation 0.02, and bias 0
             nn.init.normal_(m.weight, 1.0, 0.02)
             nn.init.constant_(m.bias, 0)
 
     def conv_block(self, in_channels, out_channels):
-        # Encoder 使用 LeakyReLU
+        # Encoder uses LeakyReLU
         return nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=4, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(out_channels),
@@ -56,32 +52,32 @@ class FullyConvNetwork(nn.Module):
         )
         
     def deconv_block(self, in_channels, out_channels, use_dropout=False):
-        # 动态构建 Decoder 的序列
+        # Dynamically build the sequence for the Decoder
         layers = [
             nn.ConvTranspose2d(in_channels, out_channels, kernel_size=4, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(out_channels)
         ]
         
-        # 如果启用 Dropout，按照 Pix2Pix 论文规范添加 50% 的 Dropout
+        # If Dropout is enabled, add 50% Dropout
         if use_dropout:
             layers.append(nn.Dropout(0.5))
             
-        # 激活函数使用普通的 ReLU
+        # Use standard ReLU for the activation function
         layers.append(nn.ReLU(inplace=True))
         
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        # 编码阶段
+        # Encoding stage
         e1 = self.enc1(x)
         e2 = self.enc2(e1)
         e3 = self.enc3(e2)
         e4 = self.enc4(e3)
         
-        # 瓶颈层
+        # Bottleneck layer
         b = self.bottleneck(e4)
         
-        # 解码阶段：按通道拼接 (dim=1)
+        # Decoding stage: Concatenate along the channel dimension (dim=1)
         d4 = self.dec4(b)
         d4 = torch.cat([d4, e4], dim=1) 
         
@@ -94,14 +90,15 @@ class FullyConvNetwork(nn.Module):
         d1 = self.dec1(d2)
         d1 = torch.cat([d1, e1], dim=1) 
         
-        # 输出
+        # Output
         out = self.final(d1)
         return out
     
 class PatchGANDiscriminator(nn.Module):
     def __init__(self, in_channels=6):
         """
-        in_channels 默认为 6，因为 cGAN 的判别器需要同时观察【输入原图(3)】和【输出图(3)】的拼接结果
+        in_channels defaults to 6 because the cGAN discriminator needs to observe 
+        the concatenated result of both the [input original image (3)] and the [output image (3)]
         """
         super().__init__()
         
@@ -114,13 +111,13 @@ class PatchGANDiscriminator(nn.Module):
             return layers
 
         self.model = nn.Sequential(
-            # 第一层不使用 BatchNorm
+            # The first layer does not use BatchNorm
             *discriminator_block(in_channels, 64, normalization=False), # Output: (64, 128, 128)
             *discriminator_block(64, 128),                              # Output: (128, 64, 64)
             *discriminator_block(128, 256),                             # Output: (256, 32, 32)
-            # 为了维持 Patch 尺寸，倒数第二层步长设为 1
+            # To maintain the Patch size, the stride of the penultimate layer is set to 1
             *discriminator_block(256, 512, stride=1),                   # Output: (512, 31, 31)
-            # 输出层：将通道数映射为 1 (真假概率图)
+            # Output layer: Map the number of channels to 1 (real/fake probability map)
             nn.Conv2d(512, 1, kernel_size=4, padding=1, bias=True)      # Output: (1, 30, 30)
         )
         
@@ -134,6 +131,6 @@ class PatchGANDiscriminator(nn.Module):
             nn.init.constant_(m.bias, 0)
 
     def forward(self, input_img, target_img):
-        # 将输入图和目标图在通道维度(dim=1)上拼接起来，作为条件输入
+        # Concatenate the input image and the target image along the channel dimension (dim=1) as a conditional input
         img_input = torch.cat((input_img, target_img), dim=1)
         return self.model(img_input)
