@@ -13,17 +13,17 @@
 经典的 Bundle Adjustment 问题表述为：一个 3D 头部模型的表面上采样了 20000 个 3D 点，并从 50 个不同视角将这些点投影到 2D 图像上，仅根据这些 2D 观测，通过优化恢复出 3D 点坐标、相机参数和焦距。
 
 运行文件`visualize_data.py`，可以了解数据读取和可视化的方式，基本结果如下：
-<img src="result/view_000_overlay.png" alt="数据读取和可视化" width="800">
-<img src="result/view_012_overlay.png" alt="数据读取和可视化" width="800">
-<img src="result/view_025_overlay.png" alt="数据读取和可视化" width="800">
-<img src="result/view_037_overlay.png" alt="数据读取和可视化" width="800">
-<img src="result/view_049_overlay.png" alt="数据读取和可视化" width="800">
+<img src="picture_results/view_000_overlay.png" alt="数据读取和可视化" width="800">
+<img src="picture_results/view_012_overlay.png" alt="数据读取和可视化" width="800">
+<img src="picture_results/view_025_overlay.png" alt="数据读取和可视化" width="800">
+<img src="picture_results/view_037_overlay.png" alt="数据读取和可视化" width="800">
+<img src="picture_results/view_049_overlay.png" alt="数据读取和可视化" width="800">
 
 由于本次任务仍然需要使用GPU，所以我把所有的代码都放在Google Colaboratory上运行，运行之后保存为`Bundle Adjustment.ipynb`文件，运行过程中的输出直接保存在记事本中，便于查看。
-<img src="result/1.png" alt="Google Colab界面展示" width="800">
+<img src="picture_results/1.png" alt="Google Colab界面展示" width="800">
 在Task 1 的任务中，PyTorch3D 包的安装过程花了大约36分钟左右（主要卡在了Building wheels for collected packages : pytorch3d这一步，虽然我也不知道为什么），整体代码的运行过程大约只需要15秒：
-<img src="result/2.png" alt="代码运行过程" width="800">
-<img src="result/8.png" alt="代码运行过程" width="800">
+<img src="picture_results/2.png" alt="代码运行过程" width="800">
+<img src="picture_results/8.png" alt="代码运行过程" width="800">
 
 本任务利用深度学习框架 **PyTorch** 强大的自动微分（Autograd）机制和梯度下降优化器（Adam），将 Bundle Adjustment 问题转化为一个类似神经网络训练的过程。
 
@@ -60,12 +60,12 @@ $$Loss = \frac{1}{\sum M_{ij}} \sum_{i=1}^{V} \sum_{j=1}^{N} M_{ij} \left\| \hat
 2. `optimizer.step()`：使用 Adam 优化器，通过梯度下降的方式，以 $lr=0.01$ 的学习率迭代更新所有的参数。
 
 随着迭代的进行，损失值从几万下降到接近 0，此时相机位姿和三维点云的坐标被成功恢复并对齐，最终完成了 2D 到 3D 的结构恢复。
-<img src="result/6.png" alt="数据读取和可视化" width="800">
-<img src="result/7.png" alt="参数结果展示" width="800">
+<img src="picture_results/6.png" alt="数据读取和可视化" width="800">
+<img src="picture_results/7.png" alt="参数结果展示" width="800">
 最终得到结果`reconstructed_points.obj`，使用`MeshLab`打开该文件后结果如下：
-<img src="result/3.png" alt="重建点云结果" width="800">
-<img src="result/4.png" alt="重建点云结果" width="800">
-<img src="result/5.png" alt="重建点云结果" width="800">
+<img src="picture_results/3.png" alt="重建点云结果" width="800">
+<img src="picture_results/4.png" alt="重建点云结果" width="800">
+<img src="picture_results/5.png" alt="重建点云结果" width="800">
 
 ## 2. 使用 COLMAP 从多视角图像实现完整的 3D 重建
 
@@ -109,20 +109,20 @@ $$Loss = \frac{1}{\sum M_{ij}} \sum_{i=1}^{V} \sum_{j=1}^{N} M_{ij} \left\| \hat
 
 ### 2.4 结果分析
 实验过程中输出如下，整个 3D 重建过程大约需要15分钟左右时间:
-<img src="result/9.png" alt="COLMAP重建结果" width="800">
-<img src="result/10.png" alt="COLMAP重建结果" width="800">
+<img src="picture_results/9.png" alt="COLMAP重建结果" width="800">
+<img src="picture_results/10.png" alt="COLMAP重建结果" width="800">
 
 经过上述流水线，成功从给定的图片集中恢复出了场景的高精度几何结构。
 最终生成的 `fused.ply` 文件不仅包含了所有的 3D 坐标点 $(X, Y, Z)$，还包含了每个点对应的 RGB 颜色信息和法线向量。该稠密点云可以直接导入 MeshLab 等 3D 软件中进行可视化，结果如下：
-<img src="result/12.png" alt="COLMAP重建结果" width="800">
-<img src="result/13.png" alt="COLMAP重建结果" width="800">
-<img src="result/14.png" alt="COLMAP重建结果" width="800">
-<img src="result/15.png" alt="COLMAP重建结果" width="800">
+<img src="picture_results/12.png" alt="COLMAP重建结果" width="800">
+<img src="picture_results/13.png" alt="COLMAP重建结果" width="800">
+<img src="picture_results/14.png" alt="COLMAP重建结果" width="800">
+<img src="picture_results/15.png" alt="COLMAP重建结果" width="800">
 
 ## 3 代码上传及补充说明
 本项目运行后文件夹大小如下图（总大小1.74 GB ）：
 
-<img src="result/11.png" alt="COLMAP重建结果" width="200">
+<img src="picture_results/11.png" alt="COLMAP重建结果" width="200">
 
 为了上传的方便，只保留了基本的代码和最终结果，去掉了部分中间结果。
 
