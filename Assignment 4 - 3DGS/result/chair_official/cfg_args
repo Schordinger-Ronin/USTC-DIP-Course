@@ -1,0 +1,1 @@
+Namespace(sh_degree=3, source_path='/content/drive/MyDrive/Assignment 4 - 3DGS/data/chair', model_path='/content/drive/MyDrive/Assignment 4 - 3DGS/result/chair_official', images='images', resolution=-1, white_background=False, data_device='cuda', eval=False)
