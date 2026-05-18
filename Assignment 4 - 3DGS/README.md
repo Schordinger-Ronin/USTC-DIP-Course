@@ -49,7 +49,10 @@ $$\Sigma^{\prime} = J W \Sigma W^T J^T$$
 在 `compute_projection` 函数中，首先将 3D 点变换到相机坐标系。针对雅可比矩阵 $J$ 的构造，由于透视投影公式为 $u = f_x \frac{x_c}{z_c}, v = f_y \frac{y_c}{z_c}$，对其求偏导可得：
 
 $$
-J = \begin{bmatrix} \frac{f_x}{z_c} & 0 & -\frac{f_x x_c}{z_c^2} \\ 0 & \frac{f_y}{z_c} & -\frac{f_y y_c}{z_c^2} \end{bmatrix}
+J = \begin{bmatrix} 
+\frac{f_x}{z_c} & 0 & -\frac{f_x x_c}{z_c^2} \\ 
+0 & \frac{f_y}{z_c} & -\frac{f_y y_c}{z_c^2} 
+\end{bmatrix}
 $$
 
 代码中利用 `depths` ($z_c$) 并配合 `clamp` 防止除零错误，解析计算了 $J$ 的各个元素。随后利用 `torch.bmm` 实现了批量的高效矩阵连乘，完成了协方差从 3D 到 2D 的降维投影。
