@@ -165,8 +165,7 @@ $$T_{(x, i)} = \prod_{j<i} (1 - \alpha_{(x, j)})$$
 
 动图/视频渲染后的结果如下：
 
-<img src="picture_result
-s/point_cloud_iteration_30000_chair.gif" width="70%">
+<img src="picture_results/point_cloud_iteration_30000_chair.gif" width="70%">
 <img src="picture_results/point_cloud_iteration_30000_lego.gif" width="70%">
 
 需要的显存较大，有些场景甚至需要24GB的内存，如果电脑/服务器提供不了较大内存只能缩小照片的大小。
